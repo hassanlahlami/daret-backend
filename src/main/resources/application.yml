@@ -1,0 +1,49 @@
+spring:
+  application:
+    name: daret-backend
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/daret}
+    username: ${SPRING_DATASOURCE_USERNAME:daret}
+    password: ${SPRING_DATASOURCE_PASSWORD:daret}
+  jpa:
+    hibernate:
+      # Schema is owned by Flyway, never by Hibernate. Validate only.
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+daret:
+  jwt:
+    # Base64-encoded HMAC secret. Override in every real environment.
+    secret: ${DARET_JWT_SECRET:ZGV2LW9ubHktc2VjcmV0LWNoYW5nZS1tZS1pbi1wcm9kdWN0aW9uLTEyMzQ1Ng==}
+    access-ttl-minutes: ${DARET_JWT_ACCESS_TTL_MIN:15}
+    refresh-ttl-days: ${DARET_JWT_REFRESH_TTL_DAYS:30}
+  auth:
+    # Fixed-window rate limit for /auth endpoints (per client IP).
+    rate-limit:
+      max-requests: 10
+      window-seconds: 60
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+server:
+  port: 8080
+  forward-headers-strategy: framework
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

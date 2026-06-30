@@ -1,0 +1,28 @@
+# =========================
+# Java / Spring Boot / Maven
+# =========================
+target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+!**/maven-wrapper.jar
+
+# Maven wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# =========================
+# Spring Boot
+# =========================
+logs/
+*.log
+log/
+logs/**
+hs_err_pid*
+replay_pid*
+
+# Application secrets (optional)
+application-local.properties
+application-local.yml
+application-local.yaml
