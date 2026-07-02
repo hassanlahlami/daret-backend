@@ -95,6 +95,7 @@ public class CircleService {
     }
 
     /** Owner (or ADMIN, enforced at the controller) dissolves a FORMING circle. */
+    @Audited("circle.cancel")
     @Transactional
     public CircleView cancel(UUID circleId, UUID actorId, boolean isAdmin) {
         Circle circle = circles.findById(circleId)

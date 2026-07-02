@@ -8,4 +8,6 @@ import java.util.UUID;
 public interface SlotRepository extends JpaRepository<Slot, UUID> {
 
     List<Slot> findByCircleId(UUID circleId);
+
+    long countByPlatformFunded(boolean platformFunded);
 }

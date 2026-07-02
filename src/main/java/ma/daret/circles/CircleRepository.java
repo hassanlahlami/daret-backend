@@ -1,6 +1,8 @@
 package ma.daret.circles;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Lock;
@@ -11,6 +13,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface CircleRepository extends JpaRepository<Circle, UUID>, JpaSpecificationExecutor<Circle> {
+
+    long countByStatus(CircleStatus status);
+
+    Page<Circle> findByStatus(CircleStatus status, Pageable pageable);
 
     /**
      * Locks the circle row for the duration of the transaction so concurrent joins
