@@ -18,4 +18,8 @@ public interface ContributionRepository extends JpaRepository<Contribution, UUID
     List<Contribution> findByStatusAndDueDateLessThanEqual(Contribution.Status status, LocalDate onOrBefore);
 
     int countByCircleIdAndCycleIndexAndStatusNot(UUID circleId, int cycleIndex, Contribution.Status status);
+
+    int countByUserIdAndStatus(UUID userId, Contribution.Status status);
+
+    int countByCircleMemberIdAndStatus(UUID circleMemberId, Contribution.Status status);
 }

@@ -9,12 +9,14 @@ import ma.daret.circles.ContributionRepository;
 import ma.daret.circles.Payout;
 import ma.daret.circles.PayoutRepository;
 import ma.daret.common.web.ApiException;
+import ma.daret.compliance.Audited;
 import ma.daret.ledger.LedgerAccounts;
 import ma.daret.ledger.LedgerService;
 import ma.daret.ledger.LedgerService.Leg;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,6 +46,7 @@ public class SettlementService {
         this.ledger = ledger;
     }
 
+    @Audited("contribution.settled")
     @Transactional
     public void applyCollectSettled(PaymentIntent intent) {
         Contribution c = contributions.findById(intent.getRefId())
@@ -61,6 +64,7 @@ public class SettlementService {
         ));
     }
 
+    @Audited("payout.settled")
     @Transactional
     public void applyDisburseSettled(PaymentIntent intent) {
         Payout p = payouts.findById(intent.getRefId())
@@ -71,11 +75,18 @@ public class SettlementService {
         p.setStatus(Payout.Status.PAID);
         payouts.save(p);
 
-        // The pot pays the recipient and the platform; debits = credits = the pot.
+        // The pot (= recipient amount + platform cut) is debited and split between the
+        // recipient and the platform. For late slots the platform cut is negative — the
+        // platform tops up the recipient's bonus from fees earned on early slots — so that
+        // leg becomes a debit on platform revenue. Every posting still nets to zero.
+        BigDecimal cut = p.getPlatformCut();
+        Leg platformLeg = cut.signum() >= 0
+                ? Leg.credit(LedgerAccounts.PLATFORM_REVENUE, cut)
+                : Leg.debit(LedgerAccounts.PLATFORM_REVENUE, cut.negate());
         ledger.post("PAYOUT", p.getId(), p.getCycleIndex(), List.of(
-                Leg.debit(LedgerAccounts.circlePot(p.getCircleId()), p.getAmount().add(p.getPlatformCut())),
+                Leg.debit(LedgerAccounts.circlePot(p.getCircleId()), p.getAmount().add(cut)),
                 Leg.credit(LedgerAccounts.member(p.getRecipientUserId()), p.getAmount()),
-                Leg.credit(LedgerAccounts.PLATFORM_REVENUE, p.getPlatformCut())
+                platformLeg
         ));
 
         completeCircleIfDone(p.getCircleId());

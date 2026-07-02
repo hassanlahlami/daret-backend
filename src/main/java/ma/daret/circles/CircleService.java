@@ -5,6 +5,7 @@ import ma.daret.circles.CircleDtos.CircleView;
 import ma.daret.circles.CircleDtos.CreateCircleRequest;
 import ma.daret.circles.CircleDtos.MemberView;
 import ma.daret.common.web.ApiException;
+import ma.daret.compliance.Audited;
 import ma.daret.economics.FeeScheduleRepository;
 import ma.daret.identity.kyc.KycGate;
 import org.springframework.data.domain.Page;
@@ -40,6 +41,7 @@ public class CircleService {
     }
 
     /** Create a circle (FORMING) and enroll the creator as its first member. */
+    @Audited("circle.create")
     @Transactional
     public CircleView create(UUID ownerId, CreateCircleRequest req) {
         kycGate.requireVerified(ownerId);
@@ -69,6 +71,7 @@ public class CircleService {
     }
 
     /** Join a FORMING circle expressing a slot preference (spec FR-8). */
+    @Audited("circle.join")
     @Transactional
     public CircleView join(UUID circleId, UUID userId, SlotPreference preference) {
         kycGate.requireVerified(userId);

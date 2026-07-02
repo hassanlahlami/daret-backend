@@ -14,4 +14,6 @@ public interface CircleMemberRepository extends JpaRepository<CircleMember, UUID
     int countByCircleId(UUID circleId);
 
     boolean existsByCircleIdAndUserId(UUID circleId, UUID userId);
+
+    List<CircleMember> findByStanding(MemberStanding standing);
 }

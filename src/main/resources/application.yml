@@ -27,18 +27,55 @@ daret:
   auth:
     # Fixed-window rate limit for /auth endpoints (per client IP).
     rate-limit:
-      max-requests: 10
-      window-seconds: 60
+      max-requests: ${DARET_AUTH_RATELIMIT_MAX:10}
+      window-seconds: ${DARET_AUTH_RATELIMIT_WINDOW:60}
+  payments:
+    mock:
+      # 0.0 = never fail. Raise to exercise retry/default paths.
+      failure-rate: ${DARET_MOCK_FAILURE_RATE:0.0}
+      # Mock settles COLLECT/DISBURSE immediately (MVP). Set false to simulate async.
+      settle-immediately: ${DARET_MOCK_SETTLE_IMMEDIATELY:true}
+  scheduler:
+    enabled: ${DARET_SCHEDULER_ENABLED:true}
+    interval-ms: ${DARET_SCHEDULER_INTERVAL_MS:60000}
+  seed:
+    # Seed a demo dataset on startup (spec §16). Never enable in production.
+    enabled: ${DARET_SEED_ENABLED:false}
+  risk:
+    # Max fraction of a circle's seats the platform may gap-fill (spec §5.4).
+    max-platform-exposure-pct: ${DARET_MAX_EXPOSURE_PCT:0.10}
+    # Days after a due date before an unpaid contribution is marked MISSED.
+    contribution-grace-days: ${DARET_GRACE_DAYS:3}
+    # Missed contributions before a member is DEFAULTED.
+    default-after-missed: ${DARET_DEFAULT_AFTER_MISSED:2}
 
 management:
   endpoints:
     web:
       exposure:
-        include: health, info
+        include: health, info, metrics, prometheus
   endpoint:
     health:
       probes:
         enabled: true
+      show-details: when-authorized
+  info:
+    build:
+      enabled: true
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+info:
+  app:
+    name: Daret
+    description: Digital rotating-savings (ROSCA) platform
 
 server:
   port: 8080

@@ -1,28 +1,33 @@
 package ma.daret.circles;
 
 import ma.daret.common.web.ApiException;
+import ma.daret.compliance.Audited;
 import ma.daret.economics.FeeEngine;
 import ma.daret.economics.FeeSchedule;
 import ma.daret.economics.FeeScheduleRepository;
 import ma.daret.economics.SlotEconomics;
+import ma.daret.identity.user.SystemUsers;
+import ma.daret.risk.MatchingService;
+import ma.daret.risk.MatchingService.Assignment;
+import ma.daret.risk.MatchingService.Candidate;
+import ma.daret.risk.RiskService;
+import ma.daret.scoring.CreditTier;
+import ma.daret.scoring.ScoringService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.Comparator;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
- * Activates a FORMING circle (spec FR-12): assigns slot positions, prices the
- * slots, and generates the full contribution + payout schedule, then transitions
- * the circle to ACTIVE.
- *
- * <p>Phase 4 uses a simple preference-ordered assignment (EARLY → FLEXIBLE → LATE,
- * then join order). Phase 5 replaces this with the real matching engine
- * (score gate, preference optimisation) and risk/gap-fill — without changing the
- * schedule-generation or money flow below.
+ * Activates a FORMING circle (spec FR-10/11/12/16): gap-fills any empty seats within
+ * the exposure cap, runs the matching engine (score gate + preferences) to assign
+ * positions, prices the slots, and generates the full contribution/payout schedule.
  */
 @Service
 public class CircleActivationService {
@@ -35,6 +40,9 @@ public class CircleActivationService {
     private final CircleStateMachine stateMachine;
     private final FeeEngine feeEngine;
     private final FeeScheduleRepository feeSchedules;
+    private final RiskService riskService;
+    private final MatchingService matchingService;
+    private final ScoringService scoringService;
 
     public CircleActivationService(CircleRepository circles,
                                    CircleMemberRepository members,
@@ -43,7 +51,10 @@ public class CircleActivationService {
                                    PayoutRepository payouts,
                                    CircleStateMachine stateMachine,
                                    FeeEngine feeEngine,
-                                   FeeScheduleRepository feeSchedules) {
+                                   FeeScheduleRepository feeSchedules,
+                                   RiskService riskService,
+                                   MatchingService matchingService,
+                                   ScoringService scoringService) {
         this.circles = circles;
         this.members = members;
         this.slots = slots;
@@ -52,12 +63,16 @@ public class CircleActivationService {
         this.stateMachine = stateMachine;
         this.feeEngine = feeEngine;
         this.feeSchedules = feeSchedules;
+        this.riskService = riskService;
+        this.matchingService = matchingService;
+        this.scoringService = scoringService;
     }
 
-    public record ActivationResult(UUID circleId, CircleStatus status, int seats,
-                                   int contributionsCreated, int payoutsCreated) {
+    public record ActivationResult(UUID circleId, CircleStatus status, int seats, int gapFilledSeats,
+                                   int contributionsCreated, int payoutsCreated, List<String> rationale) {
     }
 
+    @Audited("circle.activate")
     @Transactional
     public ActivationResult activate(UUID circleId, UUID actorId, boolean isAdmin) {
         Circle circle = circles.findByIdForUpdate(circleId)
@@ -70,29 +85,35 @@ public class CircleActivationService {
             throw ApiException.conflict("CIRCLE_NOT_FORMING", "Only a FORMING circle can be activated");
         }
 
-        List<CircleMember> roster = members.findByCircleId(circleId);
         int n = circle.getSeatCount();
-        if (roster.size() != n) {
-            // Gap-fill of an under-filled circle arrives in Phase 5 (risk/exposure cap).
-            throw ApiException.conflict("CIRCLE_NOT_FULL",
-                    "Circle has " + roster.size() + "/" + n + " seats filled");
+        List<CircleMember> roster = new ArrayList<>(members.findByCircleId(circleId));
+
+        // Gap-fill empty seats with the platform account, within the exposure cap
+        // (rejects activation if it would exceed it).
+        RiskService.GapFillPlan plan = riskService.planGapFill(n, roster.size());
+        for (int i = 0; i < plan.emptySeats(); i++) {
+            CircleMember gap = new CircleMember(circleId, SystemUsers.PLATFORM_USER_ID, SlotPreference.FLEXIBLE);
+            roster.add(members.save(gap));
         }
 
+        // Match members to positions honouring the score gate and preferences.
+        List<Candidate> candidates = roster.stream()
+                .map(m -> new Candidate(m.getId(), m.getUserId(), tierOf(m.getUserId()),
+                        m.getSlotPreference(), m.getCreatedAt(), isPlatform(m.getUserId())))
+                .toList();
+        List<Assignment> assignments = matchingService.assign(n, candidates);
+
+        Map<UUID, CircleMember> byId = roster.stream()
+                .collect(Collectors.toMap(CircleMember::getId, m -> m));
         FeeSchedule schedule = resolveSchedule(circle);
-
-        // Order members by preference, then by join time, and assign positions 1..N.
-        roster.sort(Comparator
-                .comparingInt((CircleMember m) -> preferenceRank(m.getSlotPreference()))
-                .thenComparing(CircleMember::getCreatedAt));
-
         BigDecimal contribution = circle.getContributionAmount();
         BigDecimal pot = contribution.multiply(BigDecimal.valueOf(n));
         LocalDate start = LocalDate.now();
         int contributionsCreated = 0;
 
-        for (int i = 0; i < n; i++) {
-            int position = i + 1;
-            CircleMember member = roster.get(i);
+        for (Assignment a : assignments) {
+            CircleMember member = byId.get(a.memberId());
+            int position = a.position();
             member.setSlotPosition(position);
 
             SlotEconomics econ = feeEngine.priceSlot(schedule, n, position, null, circle.isShariaMode());
@@ -102,10 +123,10 @@ public class CircleActivationService {
             slot.setPosition(position);
             slot.setPositionFee(econ.positionFee());
             slot.setPayoutBonus(econ.payoutBonus());
+            slot.setPlatformFunded(a.platformFunded());
             slot.setUserId(member.getUserId());
             slots.save(slot);
 
-            // One contribution per cycle (the recipient also contributes in their cycle).
             for (int cycle = 1; cycle <= n; cycle++) {
                 Contribution c = new Contribution();
                 c.setCircleMemberId(member.getId());
@@ -118,7 +139,6 @@ public class CircleActivationService {
                 contributionsCreated++;
             }
 
-            // The member receives the pot once, at their slot's cycle, net of their economics.
             BigDecimal amount = pot.add(econ.payoutBonus())
                     .subtract(econ.positionFee())
                     .subtract(econ.serviceFee());
@@ -139,7 +159,17 @@ public class CircleActivationService {
         }
 
         stateMachine.transition(circle, CircleStatus.ACTIVE);
-        return new ActivationResult(circleId, circle.getStatus(), n, contributionsCreated, n);
+        List<String> rationale = assignments.stream().map(Assignment::rationale).toList();
+        return new ActivationResult(circleId, circle.getStatus(), n, plan.emptySeats(),
+                contributionsCreated, n, rationale);
+    }
+
+    private CreditTier tierOf(UUID userId) {
+        return isPlatform(userId) ? CreditTier.A : scoringService.currentTier(userId);
+    }
+
+    private static boolean isPlatform(UUID userId) {
+        return SystemUsers.PLATFORM_USER_ID.equals(userId);
     }
 
     private FeeSchedule resolveSchedule(Circle circle) {
@@ -147,13 +177,5 @@ public class CircleActivationService {
                 ? circle.getFeeScheduleId() : FeeScheduleRepository.DEFAULT_ID;
         return feeSchedules.findById(id)
                 .orElseThrow(() -> ApiException.notFound("FEE_SCHEDULE_NOT_FOUND", "Fee schedule not found"));
-    }
-
-    private static int preferenceRank(SlotPreference p) {
-        return switch (p) {
-            case EARLY -> 0;
-            case FLEXIBLE -> 1;
-            case LATE -> 2;
-        };
     }
 }

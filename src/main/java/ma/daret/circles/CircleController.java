@@ -36,13 +36,16 @@ public class CircleController {
     private final CircleService circleService;
     private final FeePreviewService feePreviewService;
     private final CircleActivationService activationService;
+    private final ScheduleService scheduleService;
 
     public CircleController(CircleService circleService,
                             FeePreviewService feePreviewService,
-                            CircleActivationService activationService) {
+                            CircleActivationService activationService,
+                            ScheduleService scheduleService) {
         this.circleService = circleService;
         this.feePreviewService = feePreviewService;
         this.activationService = activationService;
+        this.scheduleService = scheduleService;
     }
 
     private static boolean isAdmin(Authentication authentication) {
@@ -89,6 +92,12 @@ public class CircleController {
                            @PathVariable UUID id,
                            @Valid @RequestBody JoinCircleRequest req) {
         return circleService.join(id, principal.userId(), req.slotPreference());
+    }
+
+    @GetMapping("/{id}/schedule")
+    @PreAuthorize("hasRole('MEMBER')")
+    public ScheduleDtos.CircleScheduleView schedule(@PathVariable UUID id) {
+        return scheduleService.circleSchedule(id);
     }
 
     @PostMapping("/{id}/activate")

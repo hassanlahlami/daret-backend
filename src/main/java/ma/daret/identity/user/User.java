@@ -14,6 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ma.daret.common.domain.BaseEntity;
+import ma.daret.common.pii.Pii;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -29,9 +30,11 @@ import java.util.Set;
 @NoArgsConstructor
 public class User extends BaseEntity {
 
+    @Pii
     @Column(unique = true)
     private String email;
 
+    @Pii
     @Column(unique = true)
     private String phone;
 

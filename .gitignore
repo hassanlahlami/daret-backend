@@ -26,3 +26,8 @@ replay_pid*
 application-local.properties
 application-local.yml
 application-local.yaml
+
+# Env (compose) — keep the example
+.env
+.env.*
+!.env.example

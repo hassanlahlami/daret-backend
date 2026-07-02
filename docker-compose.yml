@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-daret}
+      POSTGRES_USER: ${POSTGRES_USER:-daret}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-daret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-daret} -d ${POSTGRES_DB:-daret}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  adminer:
+    image: adminer:4
+    ports:
+      - "8081:8080"
+    depends_on:
+      - postgres
+
+  # Run the full stack: clone daret-backend and daret-frontend side by side, then
+  # `docker compose up --build` from this (backend) repo.
+  backend:
+    build:
+      context: .
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-daret}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-daret}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-daret}
+      DARET_JWT_SECRET: ${DARET_JWT_SECRET:-ZGV2LW9ubHktc2VjcmV0LWNoYW5nZS1tZS1pbi1wcm9kdWN0aW9uLTEyMzQ1Ng==}
+      DARET_JWT_ACCESS_TTL_MIN: ${DARET_JWT_ACCESS_TTL_MIN:-15}
+      DARET_JWT_REFRESH_TTL_DAYS: ${DARET_JWT_REFRESH_TTL_DAYS:-30}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health/readiness"]
+      interval: 15s
+      timeout: 3s
+      retries: 10
+      start_period: 45s
+
+  frontend:
+    build:
+      context: ../frontend
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+      NEXT_PUBLIC_DEFAULT_LOCALE: ${NEXT_PUBLIC_DEFAULT_LOCALE:-fr}
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/fr"]
+      interval: 30s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+
+volumes:
+  pgdata:
