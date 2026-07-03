@@ -35,9 +35,15 @@ daret:
       failure-rate: ${DARET_MOCK_FAILURE_RATE:0.0}
       # Mock settles COLLECT/DISBURSE immediately (MVP). Set false to simulate async.
       settle-immediately: ${DARET_MOCK_SETTLE_IMMEDIATELY:true}
+      # When async, a pending movement settles when polled by the reconciler.
+      auto-settle-on-poll: ${DARET_MOCK_AUTO_SETTLE_ON_POLL:false}
+    webhook:
+      # HMAC-SHA256 secret to verify inbound PSP webhooks. Override in prod.
+      secret: ${DARET_PSP_WEBHOOK_SECRET:dev-webhook-secret-change-me}
   scheduler:
     enabled: ${DARET_SCHEDULER_ENABLED:true}
     interval-ms: ${DARET_SCHEDULER_INTERVAL_MS:60000}
+    reconcile-interval-ms: ${DARET_RECONCILE_INTERVAL_MS:30000}
   seed:
     # Seed a demo dataset on startup (spec §16). Never enable in production.
     enabled: ${DARET_SEED_ENABLED:false}

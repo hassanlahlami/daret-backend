@@ -60,6 +60,17 @@ seed/          seeder de démo
 
 Migrations Flyway : `V1..V6`. Schéma possédé par Flyway ; Hibernate en `validate`.
 
+## 💳 Paiements (règlement asynchrone)
+
+Tout passe par le port `PaymentProvider` (`MockPaymentProvider` en MVP ; adaptateur
+PSP HTTP en prod). Le règlement réel est **asynchrone** :
+
+- l'outbox envoie l'intent au PSP → statut `PENDING` ;
+- le PSP confirme via **webhook signé HMAC** (`POST /api/v1/webhooks/psp`) — vérifié,
+  idempotent → règle la contribution/le versement + écriture au grand livre ;
+- un **reconciler planifié** (ShedLock) interroge (`poll`) les intents en attente en
+  filet de sécurité ; déclenchable à la demande via `POST /admin/ops/reconcile`.
+
 ## 🔭 Observabilité
 
 - `/actuator/health` (+ sondes `liveness`/`readiness`) · `/actuator/prometheus` (Micrometer) · `/actuator/info` (version de build).

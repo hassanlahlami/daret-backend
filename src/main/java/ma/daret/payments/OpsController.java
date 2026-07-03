@@ -22,10 +22,19 @@ public class OpsController {
 
     private final CyclePipeline pipeline;
     private final DefaultSweepService defaultSweep;
+    private final PaymentReconciliationService reconciliation;
 
-    public OpsController(CyclePipeline pipeline, DefaultSweepService defaultSweep) {
+    public OpsController(CyclePipeline pipeline, DefaultSweepService defaultSweep,
+                         PaymentReconciliationService reconciliation) {
         this.pipeline = pipeline;
         this.defaultSweep = defaultSweep;
+        this.reconciliation = reconciliation;
+    }
+
+    /** Reconcile still-pending payment intents against the PSP (poll path). */
+    @PostMapping("/reconcile")
+    public java.util.Map<String, Integer> reconcile() {
+        return java.util.Map.of("settled", reconciliation.reconcilePending());
     }
 
     @PostMapping("/run-cycle")

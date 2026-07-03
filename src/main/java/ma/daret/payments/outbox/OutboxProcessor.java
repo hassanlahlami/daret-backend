@@ -6,7 +6,6 @@ import ma.daret.payments.PayoutService;
 import ma.daret.payments.PaymentIntent;
 import ma.daret.payments.PaymentIntentRepository;
 import ma.daret.payments.SettlementService;
-import ma.daret.payments.port.PaymentDirection;
 import ma.daret.payments.port.PaymentProvider;
 import ma.daret.payments.port.PaymentProvider.CollectRequest;
 import ma.daret.payments.port.PaymentProvider.DisburseRequest;
@@ -58,12 +57,10 @@ public class OutboxProcessor {
         }
 
         if (intent.getStatus() == PaymentStatus.SETTLED) {
-            if (intent.getDirection() == PaymentDirection.COLLECT) {
-                settlement.applyCollectSettled(intent);
-            } else {
-                settlement.applyDisburseSettled(intent);
-            }
+            settlement.applyForIntent(intent);
         }
+        // Otherwise the intent stays PENDING and is settled later by the PSP webhook
+        // or the scheduled reconciler (async settlement).
 
         event.setStatus(OutboxEvent.Status.PROCESSED);
         event.setProcessedAt(Instant.now());

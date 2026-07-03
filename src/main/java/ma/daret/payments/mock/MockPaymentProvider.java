@@ -36,6 +36,11 @@ public class MockPaymentProvider implements PaymentProvider {
 
     @Override
     public PaymentStatus poll(String externalRef) {
+        // Simulate async PSP settlement: a pending movement settles once polled.
+        if (props.autoSettleOnPoll()) {
+            byExternalRef.computeIfPresent(externalRef,
+                    (k, v) -> v == PaymentStatus.PENDING ? PaymentStatus.SETTLED : v);
+        }
         return byExternalRef.getOrDefault(externalRef, PaymentStatus.PENDING);
     }
 

@@ -23,10 +23,22 @@ public class CycleScheduler {
 
     private final CyclePipeline pipeline;
     private final DefaultSweepService defaultSweep;
+    private final PaymentReconciliationService reconciliation;
 
-    public CycleScheduler(CyclePipeline pipeline, DefaultSweepService defaultSweep) {
+    public CycleScheduler(CyclePipeline pipeline, DefaultSweepService defaultSweep,
+                          PaymentReconciliationService reconciliation) {
         this.pipeline = pipeline;
         this.defaultSweep = defaultSweep;
+        this.reconciliation = reconciliation;
+    }
+
+    @Scheduled(fixedDelayString = "${daret.scheduler.reconcile-interval-ms:30000}")
+    @SchedulerLock(name = "reconcilePayments", lockAtLeastFor = "PT5S", lockAtMostFor = "PT5M")
+    public void reconcilePayments() {
+        int settled = reconciliation.reconcilePending();
+        if (settled > 0) {
+            log.info("Reconciled {} pending payment intents", settled);
+        }
     }
 
     @Scheduled(fixedDelayString = "${daret.scheduler.interval-ms:60000}")

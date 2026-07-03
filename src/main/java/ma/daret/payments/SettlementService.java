@@ -46,6 +46,16 @@ public class SettlementService {
         this.ledger = ledger;
     }
 
+    /** Dispatch settlement by the intent's direction. Idempotent. */
+    @Transactional
+    public void applyForIntent(PaymentIntent intent) {
+        if (intent.getDirection() == ma.daret.payments.port.PaymentDirection.COLLECT) {
+            applyCollectSettled(intent);
+        } else {
+            applyDisburseSettled(intent);
+        }
+    }
+
     @Audited("contribution.settled")
     @Transactional
     public void applyCollectSettled(PaymentIntent intent) {
