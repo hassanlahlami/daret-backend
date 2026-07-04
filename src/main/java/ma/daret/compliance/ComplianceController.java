@@ -31,15 +31,18 @@ public class ComplianceController {
     private final AuditEventRepository auditEvents;
     private final KycService kycService;
     private final AmlService amlService;
+    private final DisputeService disputeService;
 
     public ComplianceController(AuditService auditService,
                                 AuditEventRepository auditEvents,
                                 KycService kycService,
-                                AmlService amlService) {
+                                AmlService amlService,
+                                DisputeService disputeService) {
         this.auditService = auditService;
         this.auditEvents = auditEvents;
         this.kycService = kycService;
         this.amlService = amlService;
+        this.disputeService = disputeService;
     }
 
     // ---- Audit chain ----
@@ -103,5 +106,28 @@ public class ComplianceController {
     @PostMapping("/compliance/aml-flags/{id}/clear")
     public AmlFlagView clearAmlFlag(@PathVariable UUID id) {
         return AmlFlagView.from(amlService.clear(id));
+    }
+
+    // ---- Disputes (FR-19 / E6) ----
+
+    public record DisputeView(UUID id, UUID raiserUserId, UUID circleId, String subject,
+                              String description, String status, String resolution) {
+        static DisputeView from(Dispute d) {
+            return new DisputeView(d.getId(), d.getRaiserUserId(), d.getCircleId(), d.getSubject(),
+                    d.getDescription(), d.getStatus().name(), d.getResolution());
+        }
+    }
+
+    public record ResolveDisputeRequest(String resolution) {
+    }
+
+    @GetMapping("/compliance/disputes")
+    public List<DisputeView> disputes() {
+        return disputeService.open().stream().map(DisputeView::from).toList();
+    }
+
+    @PostMapping("/compliance/disputes/{id}/resolve")
+    public DisputeView resolveDispute(@PathVariable UUID id, @RequestBody ResolveDisputeRequest req) {
+        return DisputeView.from(disputeService.resolve(id, req.resolution()));
     }
 }
