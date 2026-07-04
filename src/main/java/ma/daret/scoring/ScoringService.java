@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -28,6 +29,7 @@ public class ScoringService {
     private final KycGate kycGate;
     private final ContributionRepository contributions;
     private final ma.daret.social.VouchRepository vouches;
+    private final ScoreSnapshotRepository snapshots;
     private final ScoringStrategy strategy;
 
     public ScoringService(CreditScoreRepository scores,
@@ -35,12 +37,14 @@ public class ScoringService {
                           KycGate kycGate,
                           ContributionRepository contributions,
                           ma.daret.social.VouchRepository vouches,
+                          ScoreSnapshotRepository snapshots,
                           ScoringStrategy strategy) {
         this.scores = scores;
         this.users = users;
         this.kycGate = kycGate;
         this.contributions = contributions;
         this.vouches = vouches;
+        this.snapshots = snapshots;
         this.strategy = strategy;
     }
 
@@ -58,11 +62,27 @@ public class ScoringService {
                 new Signals(kycGate.isVerified(userId), tenureDays, paid, missed, vouchCount));
 
         CreditScore score = scores.findByUserId(userId).orElseGet(() -> new CreditScore(userId));
+        boolean changed = score.getScore() != outcome.score();
         score.setScore(outcome.score());
         score.setTier(outcome.tier());
         score.setFactors(outcome.factors());
         score.setComputedAt(Instant.now());
-        return scores.save(score);
+        CreditScore saved = scores.save(score);
+        // Record a history point only when the score actually moves.
+        if (changed) {
+            snapshots.save(new ScoreSnapshot(userId, outcome.score(), outcome.tier()));
+        }
+        return saved;
+    }
+
+    /** Recent score history (oldest → newest). */
+    @Transactional
+    public List<ScoreSnapshot> history(UUID userId, int limit) {
+        getOrCompute(userId); // ensure at least one point exists
+        List<ScoreSnapshot> desc = snapshots.findByUserIdOrderByCreatedAtDesc(
+                userId, org.springframework.data.domain.Limit.of(limit));
+        java.util.Collections.reverse(desc);
+        return desc;
     }
 
     /** Read the stored score, computing one if none exists yet. */

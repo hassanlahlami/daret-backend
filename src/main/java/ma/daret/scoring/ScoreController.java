@@ -33,4 +33,14 @@ public class ScoreController {
         CreditScore s = scoringService.recompute(principal.userId());
         return new ScoreResponse(s.getUserId(), s.getScore(), s.getTier(), s.getFactors(), s.getComputedAt());
     }
+
+    public record ScorePoint(int score, String tier, Instant at) {
+    }
+
+    @GetMapping("/history")
+    public java.util.List<ScorePoint> history(@AuthenticationPrincipal AuthPrincipal principal) {
+        return scoringService.history(principal.userId(), 30).stream()
+                .map(s -> new ScorePoint(s.getScore(), s.getTier().name(), s.getCreatedAt()))
+                .toList();
+    }
 }
