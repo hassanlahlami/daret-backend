@@ -35,19 +35,66 @@ public class AdminService {
     private final UserRepository users;
     private final KycProfileRepository kycProfiles;
     private final LedgerService ledger;
+    private final ma.daret.circles.ContributionRepository contributions;
+    private final ma.daret.circles.PayoutRepository payouts;
+    private final ma.daret.compliance.DisputeRepository disputes;
+    private final ma.daret.compliance.AmlFlagRepository amlFlags;
+    private final ma.daret.social.VouchRepository vouches;
 
     public AdminService(CircleRepository circles,
                         CircleMemberRepository members,
                         SlotRepository slots,
                         UserRepository users,
                         KycProfileRepository kycProfiles,
-                        LedgerService ledger) {
+                        LedgerService ledger,
+                        ma.daret.circles.ContributionRepository contributions,
+                        ma.daret.circles.PayoutRepository payouts,
+                        ma.daret.compliance.DisputeRepository disputes,
+                        ma.daret.compliance.AmlFlagRepository amlFlags,
+                        ma.daret.social.VouchRepository vouches) {
         this.circles = circles;
         this.members = members;
         this.slots = slots;
         this.users = users;
         this.kycProfiles = kycProfiles;
         this.ledger = ledger;
+        this.contributions = contributions;
+        this.payouts = payouts;
+        this.disputes = disputes;
+        this.amlFlags = amlFlags;
+        this.vouches = vouches;
+    }
+
+    @Transactional(readOnly = true)
+    public AdminDtos.Analytics analytics() {
+        Map<String, Long> contribByStatus = new LinkedHashMap<>();
+        for (ma.daret.circles.Contribution.Status s : ma.daret.circles.Contribution.Status.values()) {
+            contribByStatus.put(s.name(), contributions.countByStatus(s));
+        }
+        Map<String, Long> payoutByStatus = new LinkedHashMap<>();
+        for (ma.daret.circles.Payout.Status s : ma.daret.circles.Payout.Status.values()) {
+            payoutByStatus.put(s.name(), payouts.countByStatus(s));
+        }
+
+        // New circles per week over the last 8 weeks (oldest → newest).
+        java.time.Instant now = java.time.Instant.now();
+        long[] buckets = new long[8];
+        for (Circle c : circles.findByCreatedAtAfter(now.minus(56, java.time.temporal.ChronoUnit.DAYS))) {
+            long weeksAgo = java.time.Duration.between(c.getCreatedAt(), now).toDays() / 7;
+            if (weeksAgo >= 0 && weeksAgo < 8) {
+                buckets[(int) (7 - weeksAgo)]++;
+            }
+        }
+        java.util.List<AdminDtos.WeeklyPoint> series = new java.util.ArrayList<>(8);
+        for (int i = 0; i < 8; i++) {
+            series.add(new AdminDtos.WeeklyPoint("S" + (i - 7), buckets[i]));
+        }
+
+        return new AdminDtos.Analytics(contribByStatus, payoutByStatus,
+                disputes.countByStatus(ma.daret.compliance.Dispute.Status.OPEN),
+                amlFlags.countByStatus(ma.daret.compliance.AmlFlag.Status.OPEN),
+                vouches.count(),
+                series);
     }
 
     @Transactional(readOnly = true)

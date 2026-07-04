@@ -22,4 +22,6 @@ public interface ContributionRepository extends JpaRepository<Contribution, UUID
     int countByUserIdAndStatus(UUID userId, Contribution.Status status);
 
     int countByCircleMemberIdAndStatus(UUID circleMemberId, Contribution.Status status);
+
+    long countByStatus(Contribution.Status status);
 }

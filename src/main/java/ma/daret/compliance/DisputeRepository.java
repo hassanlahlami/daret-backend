@@ -10,4 +10,6 @@ public interface DisputeRepository extends JpaRepository<Dispute, UUID> {
     List<Dispute> findByStatusOrderByCreatedAtDesc(Dispute.Status status);
 
     List<Dispute> findByRaiserUserIdOrderByCreatedAtDesc(UUID raiserUserId);
+
+    long countByStatus(Dispute.Status status);
 }

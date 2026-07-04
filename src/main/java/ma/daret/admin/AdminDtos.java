@@ -50,4 +50,17 @@ public final class AdminDtos {
 
     public record SetEnabledRequest(boolean enabled) {
     }
+
+    public record WeeklyPoint(String label, long count) {
+    }
+
+    public record Analytics(
+            Map<String, Long> contributions,
+            Map<String, Long> payouts,
+            long openDisputes,
+            long openAmlFlags,
+            long totalVouches,
+            java.util.List<WeeklyPoint> newCirclesPerWeek
+    ) {
+    }
 }

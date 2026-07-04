@@ -18,6 +18,8 @@ public interface CircleRepository extends JpaRepository<Circle, UUID>, JpaSpecif
 
     Page<Circle> findByStatus(CircleStatus status, Pageable pageable);
 
+    java.util.List<Circle> findByCreatedAtAfter(java.time.Instant after);
+
     /**
      * Locks the circle row for the duration of the transaction so concurrent joins
      * are serialized and cannot oversubscribe seats.

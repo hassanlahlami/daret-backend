@@ -37,6 +37,11 @@ public class AdminController {
         return adminService.overview();
     }
 
+    @GetMapping("/analytics")
+    public AdminDtos.Analytics analytics() {
+        return adminService.analytics();
+    }
+
     @GetMapping("/circles")
     public Page<AdminCircleView> circles(@RequestParam(required = false) CircleStatus status,
                                          @PageableDefault(size = 20) Pageable pageable) {

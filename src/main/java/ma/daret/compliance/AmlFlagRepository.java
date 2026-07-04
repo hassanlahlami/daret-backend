@@ -11,4 +11,6 @@ public interface AmlFlagRepository extends JpaRepository<AmlFlag, UUID> {
 
     boolean existsByUserIdAndCircleIdAndTypeAndStatus(
             UUID userId, UUID circleId, AmlFlag.Type type, AmlFlag.Status status);
+
+    long countByStatus(AmlFlag.Status status);
 }

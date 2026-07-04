@@ -15,4 +15,6 @@ public interface PayoutRepository extends JpaRepository<Payout, UUID> {
     Optional<Payout> findByCircleIdAndCycleIndex(UUID circleId, int cycleIndex);
 
     List<Payout> findByRecipientUserId(UUID recipientUserId);
+
+    long countByStatus(Payout.Status status);
 }
