@@ -10,7 +10,8 @@ import java.util.Map;
 public interface ScoringStrategy {
 
     /** Signals available for scoring in a thin-data market. */
-    record Signals(boolean kycVerified, long tenureDays, int contributionsPaid, int contributionsMissed) {
+    record Signals(boolean kycVerified, long tenureDays, int contributionsPaid, int contributionsMissed,
+                   long vouchesReceived) {
     }
 
     /** Result: the 0–1000 score, its tier, and the per-factor breakdown. */

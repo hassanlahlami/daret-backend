@@ -31,12 +31,16 @@ public final class CircleDtos {
             /** Optional; falls back to the platform default fee schedule when omitted. */
             UUID feeScheduleId,
             /** The creator's own slot preference; defaults to FLEXIBLE if omitted. */
-            SlotPreference ownerSlotPreference
+            SlotPreference ownerSlotPreference,
+            /** Private circle — joining requires an invite code. Defaults to false. */
+            Boolean inviteOnly
     ) {
     }
 
     public record JoinCircleRequest(
-            @NotNull SlotPreference slotPreference
+            @NotNull SlotPreference slotPreference,
+            /** Required when the circle is invite-only. */
+            String inviteCode
     ) {
     }
 
@@ -60,13 +64,14 @@ public final class CircleDtos {
             int cycleLengthDays,
             CircleStatus status,
             boolean shariaMode,
+            boolean inviteOnly,
             UUID ownerId,
             Instant createdAt
     ) {
         static CircleView of(Circle c, int filledSeats) {
             return new CircleView(c.getId(), c.getName(), c.getContributionAmount(), c.getSeatCount(),
                     filledSeats, c.getCycleLengthDays(), c.getStatus(), c.isShariaMode(),
-                    c.getOwnerId(), c.getCreatedAt());
+                    c.isInviteOnly(), c.getOwnerId(), c.getCreatedAt());
         }
     }
 

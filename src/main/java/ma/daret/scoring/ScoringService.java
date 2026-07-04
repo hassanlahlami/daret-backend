@@ -27,17 +27,20 @@ public class ScoringService {
     private final UserRepository users;
     private final KycGate kycGate;
     private final ContributionRepository contributions;
+    private final ma.daret.social.VouchRepository vouches;
     private final ScoringStrategy strategy;
 
     public ScoringService(CreditScoreRepository scores,
                           UserRepository users,
                           KycGate kycGate,
                           ContributionRepository contributions,
+                          ma.daret.social.VouchRepository vouches,
                           ScoringStrategy strategy) {
         this.scores = scores;
         this.users = users;
         this.kycGate = kycGate;
         this.contributions = contributions;
+        this.vouches = vouches;
         this.strategy = strategy;
     }
 
@@ -49,8 +52,10 @@ public class ScoringService {
         long tenureDays = Duration.between(user.getCreatedAt(), Instant.now()).toDays();
         int paid = contributions.countByUserIdAndStatus(userId, Contribution.Status.PAID);
         int missed = contributions.countByUserIdAndStatus(userId, Contribution.Status.MISSED);
+        long vouchCount = vouches.countByVoucheeUserId(userId);
 
-        Outcome outcome = strategy.score(new Signals(kycGate.isVerified(userId), tenureDays, paid, missed));
+        Outcome outcome = strategy.score(
+                new Signals(kycGate.isVerified(userId), tenureDays, paid, missed, vouchCount));
 
         CreditScore score = scores.findByUserId(userId).orElseGet(() -> new CreditScore(userId));
         score.setScore(outcome.score());

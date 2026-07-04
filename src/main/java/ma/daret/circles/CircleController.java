@@ -37,15 +37,18 @@ public class CircleController {
     private final FeePreviewService feePreviewService;
     private final CircleActivationService activationService;
     private final ScheduleService scheduleService;
+    private final ma.daret.social.InviteService inviteService;
 
     public CircleController(CircleService circleService,
                             FeePreviewService feePreviewService,
                             CircleActivationService activationService,
-                            ScheduleService scheduleService) {
+                            ScheduleService scheduleService,
+                            ma.daret.social.InviteService inviteService) {
         this.circleService = circleService;
         this.feePreviewService = feePreviewService;
         this.activationService = activationService;
         this.scheduleService = scheduleService;
+        this.inviteService = inviteService;
     }
 
     private static boolean isAdmin(Authentication authentication) {
@@ -91,7 +94,14 @@ public class CircleController {
     public CircleView join(@AuthenticationPrincipal AuthPrincipal principal,
                            @PathVariable UUID id,
                            @Valid @RequestBody JoinCircleRequest req) {
-        return circleService.join(id, principal.userId(), req.slotPreference());
+        return circleService.join(id, principal.userId(), req.slotPreference(), req.inviteCode());
+    }
+
+    @PostMapping("/{id}/invites")
+    @PreAuthorize("hasRole('MEMBER')")
+    public java.util.Map<String, String> createInvite(@AuthenticationPrincipal AuthPrincipal principal,
+                                                      @PathVariable UUID id) {
+        return java.util.Map.of("code", inviteService.create(id, principal.userId()).getCode());
     }
 
     @GetMapping("/{id}/schedule")

@@ -79,26 +79,26 @@ public class DemoDataSeeder implements ApplicationRunner {
 
         // A FORMING circle, half-filled, open for manual joins.
         CircleView forming = circleService.create(d1, new CreateCircleRequest(
-                "Family daret (forming)", new BigDecimal("500.00"), 4, 30, true, null, SlotPreference.FLEXIBLE));
-        circleService.join(forming.id(), d2, SlotPreference.LATE);
+                "Family daret (forming)", new BigDecimal("500.00"), 4, 30, true, null, SlotPreference.FLEXIBLE, false));
+        circleService.join(forming.id(), d2, SlotPreference.LATE, null);
         log.info("Seeded FORMING circle {} (2/4 seats)", forming.id());
 
         // A COMPLETED circle — created and fully settled first, so the later
         // partial run cannot touch it (the pipeline only acts on ACTIVE circles).
         CircleView completed = circleService.create(d1, new CreateCircleRequest(
-                "Friends daret (completed)", new BigDecimal("300.00"), 3, 7, false, null, SlotPreference.FLEXIBLE));
-        circleService.join(completed.id(), d2, SlotPreference.EARLY);
-        circleService.join(completed.id(), d3, SlotPreference.LATE);
+                "Friends daret (completed)", new BigDecimal("300.00"), 3, 7, false, null, SlotPreference.FLEXIBLE, false));
+        circleService.join(completed.id(), d2, SlotPreference.EARLY, null);
+        circleService.join(completed.id(), d3, SlotPreference.LATE, null);
         activationService.activate(completed.id(), d1, true);
         cyclePipeline.run(LocalDate.now().plusDays(60)); // settle all 3 weekly cycles → COMPLETED
         log.info("Seeded COMPLETED circle {}", completed.id());
 
         // An ACTIVE circle, activated and driven a few cycles in (mid-lifecycle).
         CircleView active = circleService.create(d1, new CreateCircleRequest(
-                "Neighbors daret (active)", new BigDecimal("1000.00"), 4, 7, false, null, SlotPreference.EARLY));
-        circleService.join(active.id(), d2, SlotPreference.EARLY);
-        circleService.join(active.id(), d3, SlotPreference.FLEXIBLE);
-        circleService.join(active.id(), d4, SlotPreference.LATE);
+                "Neighbors daret (active)", new BigDecimal("1000.00"), 4, 7, false, null, SlotPreference.EARLY, false));
+        circleService.join(active.id(), d2, SlotPreference.EARLY, null);
+        circleService.join(active.id(), d3, SlotPreference.FLEXIBLE, null);
+        circleService.join(active.id(), d4, SlotPreference.LATE, null);
         activationService.activate(active.id(), d1, true);
         // Settle the first three of four weekly cycles → mid-lifecycle.
         cyclePipeline.run(LocalDate.now().plusDays(15));

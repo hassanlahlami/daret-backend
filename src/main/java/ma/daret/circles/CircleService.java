@@ -27,17 +27,20 @@ public class CircleService {
     private final CircleStateMachine stateMachine;
     private final KycGate kycGate;
     private final FeeScheduleRepository feeSchedules;
+    private final ma.daret.social.InviteService inviteService;
 
     public CircleService(CircleRepository circles,
                          CircleMemberRepository members,
                          CircleStateMachine stateMachine,
                          KycGate kycGate,
-                         FeeScheduleRepository feeSchedules) {
+                         FeeScheduleRepository feeSchedules,
+                         ma.daret.social.InviteService inviteService) {
         this.circles = circles;
         this.members = members;
         this.stateMachine = stateMachine;
         this.kycGate = kycGate;
         this.feeSchedules = feeSchedules;
+        this.inviteService = inviteService;
     }
 
     /** Create a circle (FORMING) and enroll the creator as its first member. */
@@ -58,6 +61,7 @@ public class CircleService {
         circle.setSeatCount(req.seatCount());
         circle.setCycleLengthDays(req.cycleLengthDays());
         circle.setShariaMode(req.shariaMode());
+        circle.setInviteOnly(Boolean.TRUE.equals(req.inviteOnly()));
         circle.setFeeScheduleId(feeScheduleId);
         circle.setOwnerId(ownerId);
         circle.setStatus(CircleStatus.FORMING);
@@ -73,7 +77,7 @@ public class CircleService {
     /** Join a FORMING circle expressing a slot preference (spec FR-8). */
     @Audited("circle.join")
     @Transactional
-    public CircleView join(UUID circleId, UUID userId, SlotPreference preference) {
+    public CircleView join(UUID circleId, UUID userId, SlotPreference preference, String inviteCode) {
         kycGate.requireVerified(userId);
 
         Circle circle = circles.findByIdForUpdate(circleId)
@@ -81,6 +85,10 @@ public class CircleService {
 
         if (circle.getStatus() != CircleStatus.FORMING) {
             throw ApiException.conflict("CIRCLE_NOT_OPEN", "Circle is not open for joining");
+        }
+        // Private circles require a valid invite code (consumed on join).
+        if (circle.isInviteOnly()) {
+            inviteService.consume(circleId, inviteCode);
         }
         if (members.existsByCircleIdAndUserId(circleId, userId)) {
             throw ApiException.conflict("ALREADY_MEMBER", "Already a member of this circle");

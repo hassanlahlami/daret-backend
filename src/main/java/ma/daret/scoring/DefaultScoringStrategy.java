@@ -31,6 +31,8 @@ public class DefaultScoringStrategy implements ScoringStrategy {
     private static final long TENURE_FULL_DAYS = 365;
     private static final int PAYMENT_WEIGHT = 350;
     private static final int PAYMENT_NEUTRAL_PRIOR = 150;
+    private static final int VOUCH_WEIGHT = 25;   // per vouch
+    private static final int VOUCH_CAP = 150;      // max trust bonus
 
     @Override
     public Outcome score(Signals s) {
@@ -50,7 +52,10 @@ public class DefaultScoringStrategy implements ScoringStrategy {
                 : (int) Math.round((double) s.contributionsPaid() / total * PAYMENT_WEIGHT);
         factors.put("paymentHistory", BigDecimal.valueOf(payment));
 
-        int score = Math.min(1000, Math.max(0, BASE + kyc + tenure + payment));
+        int vouch = (int) Math.min(VOUCH_CAP, Math.max(0, s.vouchesReceived()) * VOUCH_WEIGHT);
+        factors.put("vouches", BigDecimal.valueOf(vouch));
+
+        int score = Math.min(1000, Math.max(0, BASE + kyc + tenure + payment + vouch));
         factors.put("total", BigDecimal.valueOf(score));
 
         return new Outcome(score, tierFor(score), factors);

@@ -47,6 +47,10 @@ public class Circle extends BaseEntity {
     @Column(name = "sharia_mode", nullable = false)
     private boolean shariaMode = true;
 
+    /** When true, joining requires a valid invite code (private circle). */
+    @Column(name = "invite_only", nullable = false)
+    private boolean inviteOnly = false;
+
     /** Pricing schedule; populated in Phase 3 (economics). Nullable for now. */
     @Column(name = "fee_schedule_id")
     private UUID feeScheduleId;
