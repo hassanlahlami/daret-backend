@@ -22,17 +22,20 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokens;
+    private final LoginAttemptService loginAttempts;
 
     public AuthService(UserRepository users,
                        KycProfileRepository kycProfiles,
                        PasswordEncoder passwordEncoder,
                        JwtService jwtService,
-                       RefreshTokenService refreshTokens) {
+                       RefreshTokenService refreshTokens,
+                       LoginAttemptService loginAttempts) {
         this.users = users;
         this.kycProfiles = kycProfiles;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.refreshTokens = refreshTokens;
+        this.loginAttempts = loginAttempts;
     }
 
     @Transactional
@@ -66,11 +69,22 @@ public class AuthService {
     public TokenResponse login(LoginRequest req) {
         String email = normalize(req.email());
         String phone = normalize(req.phone());
-        User user = (email != null ? users.findByEmail(email) : users.findByPhone(phone))
-                .orElseThrow(() -> ApiException.unauthorized("BAD_CREDENTIALS", "Invalid credentials"));
+        String key = email != null ? email : phone;
 
-        if (!user.isEnabled() || !passwordEncoder.matches(req.password(), user.getPasswordHash())) {
+        if (key != null && loginAttempts.isLocked(key)) {
+            throw new ApiException(org.springframework.http.HttpStatus.LOCKED,
+                    "ACCOUNT_LOCKED", "Too many failed attempts — try again later");
+        }
+
+        User user = (email != null ? users.findByEmail(email) : users.findByPhone(phone)).orElse(null);
+        if (user == null || !user.isEnabled() || !passwordEncoder.matches(req.password(), user.getPasswordHash())) {
+            if (key != null) {
+                loginAttempts.recordFailure(key);
+            }
             throw ApiException.unauthorized("BAD_CREDENTIALS", "Invalid credentials");
+        }
+        if (key != null) {
+            loginAttempts.reset(key);
         }
         return issueTokens(user);
     }

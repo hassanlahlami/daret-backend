@@ -29,6 +29,10 @@ daret:
     rate-limit:
       max-requests: ${DARET_AUTH_RATELIMIT_MAX:10}
       window-seconds: ${DARET_AUTH_RATELIMIT_WINDOW:60}
+    # Account lockout after repeated failed logins (per identifier).
+    lockout:
+      max-attempts: ${DARET_AUTH_LOCKOUT_MAX:5}
+      lock-minutes: ${DARET_AUTH_LOCKOUT_MINUTES:15}
   payments:
     mock:
       # 0.0 = never fail. Raise to exercise retry/default paths.

@@ -21,7 +21,8 @@ import ma.daret.identity.auth.JwtProperties;
 
 @Configuration
 @EnableMethodSecurity
-@EnableConfigurationProperties({JwtProperties.class, AuthRateLimitProperties.class})
+@EnableConfigurationProperties({JwtProperties.class, AuthRateLimitProperties.class,
+        ma.daret.identity.auth.LoginLockoutProperties.class})
 public class SecurityConfig {
 
     private static final String[] PUBLIC_PATHS = {
@@ -50,6 +51,13 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> {})
+                .headers(h -> h
+                        .frameOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig::deny)
+                        .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).maxAgeInSeconds(31_536_000))
+                        .referrerPolicy(r -> r.policy(
+                                org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy.SAME_ORIGIN))
+                        .addHeaderWriter(new org.springframework.security.web.header.writers.StaticHeadersWriter(
+                                "Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(PUBLIC_PATHS).permitAll()
