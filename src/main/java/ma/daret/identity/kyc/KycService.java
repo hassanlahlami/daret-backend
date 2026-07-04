@@ -23,9 +23,13 @@ public class KycService {
      */
     @Audited("kyc.submit")
     @Transactional
-    public KycProfile submit(UUID userId, String partnerRef) {
+    public KycProfile submit(UUID userId, String partnerRef, boolean consent) {
+        if (!consent) {
+            throw ApiException.badRequest("CONSENT_REQUIRED", "CNDP data-processing consent is required");
+        }
         KycProfile profile = repository.findByUserId(userId).orElseGet(() -> new KycProfile(userId));
         profile.setPartnerRef(partnerRef);
+        profile.setConsentedAt(java.time.Instant.now());
         profile.setStatus(KycStatus.PENDING);
         return repository.save(profile);
     }

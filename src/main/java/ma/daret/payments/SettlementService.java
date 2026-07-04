@@ -33,17 +33,23 @@ public class SettlementService {
     private final CircleRepository circles;
     private final CircleStateMachine stateMachine;
     private final LedgerService ledger;
+    private final ma.daret.compliance.AmlService amlService;
+    private final ma.daret.risk.RiskProperties riskProps;
 
     public SettlementService(ContributionRepository contributions,
                              PayoutRepository payouts,
                              CircleRepository circles,
                              CircleStateMachine stateMachine,
-                             LedgerService ledger) {
+                             LedgerService ledger,
+                             ma.daret.compliance.AmlService amlService,
+                             ma.daret.risk.RiskProperties riskProps) {
         this.contributions = contributions;
         this.payouts = payouts;
         this.circles = circles;
         this.stateMachine = stateMachine;
         this.ledger = ledger;
+        this.amlService = amlService;
+        this.riskProps = riskProps;
     }
 
     /** Dispatch settlement by the intent's direction. Idempotent. */
@@ -98,6 +104,13 @@ public class SettlementService {
                 Leg.credit(LedgerAccounts.member(p.getRecipientUserId()), p.getAmount()),
                 platformLeg
         ));
+
+        // AML rule: flag unusually large disbursements for review.
+        if (p.getAmount().compareTo(riskProps.amlLargeAmount()) > 0) {
+            amlService.raise(p.getRecipientUserId(), p.getCircleId(),
+                    ma.daret.compliance.AmlFlag.Type.LARGE_MOVEMENT, ma.daret.compliance.AmlFlag.Severity.MEDIUM,
+                    "Large payout of " + p.getAmount() + " MAD");
+        }
 
         completeCircleIfDone(p.getCircleId());
     }

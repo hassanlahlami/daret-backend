@@ -33,6 +33,10 @@ public class KycProfile extends BaseEntity {
     @Column(name = "partner_ref")
     private String partnerRef;
 
+    /** When the user gave CNDP data-processing consent (spec §12). */
+    @Column(name = "consented_at")
+    private java.time.Instant consentedAt;
+
     public KycProfile(UUID userId) {
         this.userId = userId;
         this.status = KycStatus.PENDING;

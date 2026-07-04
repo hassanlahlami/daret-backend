@@ -9,11 +9,15 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * once they accumulate {@code defaultAfterMissed} missed contributions.
  */
 @ConfigurationProperties(prefix = "daret.risk")
-public record RiskProperties(double maxPlatformExposurePct, int contributionGraceDays, int defaultAfterMissed) {
+public record RiskProperties(double maxPlatformExposurePct, int contributionGraceDays,
+                             int defaultAfterMissed, java.math.BigDecimal amlLargeAmount) {
 
     public RiskProperties {
         if (maxPlatformExposurePct < 0 || maxPlatformExposurePct > 1) {
             throw new IllegalArgumentException("maxPlatformExposurePct must be between 0 and 1");
+        }
+        if (amlLargeAmount == null) {
+            amlLargeAmount = new java.math.BigDecimal("50000");
         }
     }
 }

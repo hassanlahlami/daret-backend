@@ -54,6 +54,8 @@ daret:
     contribution-grace-days: ${DARET_GRACE_DAYS:3}
     # Missed contributions before a member is DEFAULTED.
     default-after-missed: ${DARET_DEFAULT_AFTER_MISSED:2}
+    # Payout amount (MAD) above which an AML LARGE_MOVEMENT flag is raised.
+    aml-large-amount: ${DARET_AML_LARGE_AMOUNT:50000}
 
 management:
   endpoints:

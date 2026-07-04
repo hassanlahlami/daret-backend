@@ -17,7 +17,9 @@ public final class KycDtos {
     }
 
     public record SubmitKycRequest(
-            @NotBlank(message = "partnerRef is required") String partnerRef
+            @NotBlank(message = "partnerRef is required") String partnerRef,
+            /** CNDP data-processing consent — required to proceed. */
+            boolean consent
     ) {
     }
 

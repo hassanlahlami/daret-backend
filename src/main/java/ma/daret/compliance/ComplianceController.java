@@ -1,8 +1,5 @@
 package ma.daret.compliance;
 
-import ma.daret.circles.CircleMember;
-import ma.daret.circles.CircleMemberRepository;
-import ma.daret.circles.MemberStanding;
 import ma.daret.identity.kyc.KycProfile;
 import ma.daret.identity.kyc.KycService;
 import ma.daret.identity.kyc.KycStatus;
@@ -33,16 +30,16 @@ public class ComplianceController {
     private final AuditService auditService;
     private final AuditEventRepository auditEvents;
     private final KycService kycService;
-    private final CircleMemberRepository members;
+    private final AmlService amlService;
 
     public ComplianceController(AuditService auditService,
                                 AuditEventRepository auditEvents,
                                 KycService kycService,
-                                CircleMemberRepository members) {
+                                AmlService amlService) {
         this.auditService = auditService;
         this.auditEvents = auditEvents;
         this.kycService = kycService;
-        this.members = members;
+        this.amlService = amlService;
     }
 
     // ---- Audit chain ----
@@ -90,14 +87,21 @@ public class ComplianceController {
 
     // ---- AML flags (FR-19) ----
 
-    public record AmlFlag(UUID userId, UUID circleId, String reason) {
+    public record AmlFlagView(UUID id, UUID userId, UUID circleId, String type,
+                              String severity, String reason) {
+        static AmlFlagView from(AmlFlag f) {
+            return new AmlFlagView(f.getId(), f.getUserId(), f.getCircleId(),
+                    f.getType().name(), f.getSeverity().name(), f.getReason());
+        }
     }
 
     @GetMapping("/compliance/aml-flags")
-    public List<AmlFlag> amlFlags() {
-        List<CircleMember> defaulted = members.findByStanding(MemberStanding.DEFAULTED);
-        return defaulted.stream()
-                .map(m -> new AmlFlag(m.getUserId(), m.getCircleId(), "Member defaulted on contributions"))
-                .toList();
+    public List<AmlFlagView> amlFlags() {
+        return amlService.openFlags().stream().map(AmlFlagView::from).toList();
+    }
+
+    @PostMapping("/compliance/aml-flags/{id}/clear")
+    public AmlFlagView clearAmlFlag(@PathVariable UUID id) {
+        return AmlFlagView.from(amlService.clear(id));
     }
 }

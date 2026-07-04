@@ -5,6 +5,8 @@ import ma.daret.circles.CircleMemberRepository;
 import ma.daret.circles.Contribution;
 import ma.daret.circles.ContributionRepository;
 import ma.daret.circles.MemberStanding;
+import ma.daret.compliance.AmlFlag;
+import ma.daret.compliance.AmlService;
 import ma.daret.notifications.NotificationService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,15 +28,18 @@ public class DefaultSweepService {
     private final ContributionRepository contributions;
     private final CircleMemberRepository members;
     private final NotificationService notifications;
+    private final AmlService amlService;
     private final RiskProperties props;
 
     public DefaultSweepService(ContributionRepository contributions,
                                CircleMemberRepository members,
                                NotificationService notifications,
+                               AmlService amlService,
                                RiskProperties props) {
         this.contributions = contributions;
         this.members = members;
         this.notifications = notifications;
+        this.amlService = amlService;
         this.props = props;
     }
 
@@ -69,6 +74,9 @@ public class DefaultSweepService {
                 defaulted++;
                 notifications.notify(member.getUserId(), "MEMBER_DEFAULTED",
                         "Marked as defaulted after " + missed + " missed contributions");
+                amlService.raise(member.getUserId(), member.getCircleId(),
+                        AmlFlag.Type.MEMBER_DEFAULT, AmlFlag.Severity.HIGH,
+                        "Defaulted after " + missed + " missed contributions");
             } else {
                 member.setStanding(MemberStanding.LATE);
                 late++;

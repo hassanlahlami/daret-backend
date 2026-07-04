@@ -8,8 +8,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RiskServiceTest {
 
-    // 10% exposure cap, 3-day grace, default after 2 misses.
-    private final RiskService risk = new RiskService(new RiskProperties(0.10, 3, 2));
+    // 10% exposure cap, 3-day grace, default after 2 misses, AML threshold 50k.
+    private final RiskService risk =
+            new RiskService(new RiskProperties(0.10, 3, 2, new java.math.BigDecimal("50000")));
 
     @Test
     void full_circle_needs_no_gap_fill() {

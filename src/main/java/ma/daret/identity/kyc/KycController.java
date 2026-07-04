@@ -26,7 +26,7 @@ public class KycController {
     @PostMapping
     public KycStatusResponse submit(@AuthenticationPrincipal AuthPrincipal principal,
                                     @Valid @RequestBody SubmitKycRequest req) {
-        return KycStatusResponse.from(kycService.submit(principal.userId(), req.partnerRef()));
+        return KycStatusResponse.from(kycService.submit(principal.userId(), req.partnerRef(), req.consent()));
     }
 
     @GetMapping
