@@ -53,7 +53,7 @@ daret:
     reconcile-interval-ms: ${DARET_RECONCILE_INTERVAL_MS:30000}
   seed:
     # Seed a demo dataset on startup (spec §16). Never enable in production.
-    enabled: ${DARET_SEED_ENABLED:false}
+    enabled: ${DARET_SEED_ENABLED:true}
   risk:
     # Max fraction of a circle's seats the platform may gap-fill (spec §5.4).
     max-platform-exposure-pct: ${DARET_MAX_EXPOSURE_PCT:0.10}

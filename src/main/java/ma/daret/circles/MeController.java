@@ -24,10 +24,29 @@ public class MeController {
 
     private final ScheduleService scheduleService;
     private final VouchService vouchService;
+    private final CircleMemberRepository members;
+    private final CircleRepository circles;
 
-    public MeController(ScheduleService scheduleService, VouchService vouchService) {
+    public MeController(ScheduleService scheduleService, VouchService vouchService,
+                        CircleMemberRepository members, CircleRepository circles) {
         this.scheduleService = scheduleService;
         this.vouchService = vouchService;
+        this.members = members;
+        this.circles = circles;
+    }
+
+    public record MyCircleView(UUID id, String name, String status, int filledSeats, int seatCount) {
+    }
+
+    /** The circles the caller belongs to (owned or joined) — powers onboarding + "my circles". */
+    @GetMapping("/circles")
+    public List<MyCircleView> myCircles(@AuthenticationPrincipal AuthPrincipal principal) {
+        return members.findByUserId(principal.userId()).stream()
+                .map(m -> circles.findById(m.getCircleId()).orElse(null))
+                .filter(c -> c != null)
+                .map(c -> new MyCircleView(c.getId(), c.getName(), c.getStatus().name(),
+                        members.countByCircleId(c.getId()), c.getSeatCount()))
+                .toList();
     }
 
     @GetMapping("/obligations")
