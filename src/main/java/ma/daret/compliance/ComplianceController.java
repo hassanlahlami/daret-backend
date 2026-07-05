@@ -32,17 +32,20 @@ public class ComplianceController {
     private final KycService kycService;
     private final AmlService amlService;
     private final DisputeService disputeService;
+    private final DataRightsService dataRights;
 
     public ComplianceController(AuditService auditService,
                                 AuditEventRepository auditEvents,
                                 KycService kycService,
                                 AmlService amlService,
-                                DisputeService disputeService) {
+                                DisputeService disputeService,
+                                DataRightsService dataRights) {
         this.auditService = auditService;
         this.auditEvents = auditEvents;
         this.kycService = kycService;
         this.amlService = amlService;
         this.disputeService = disputeService;
+        this.dataRights = dataRights;
     }
 
     // ---- Audit chain ----
@@ -129,5 +132,27 @@ public class ComplianceController {
     @PostMapping("/compliance/disputes/{id}/resolve")
     public DisputeView resolveDispute(@PathVariable UUID id, @RequestBody ResolveDisputeRequest req) {
         return DisputeView.from(disputeService.resolve(id, req.resolution()));
+    }
+
+    // ---- Erasure requests (CNDP right to erasure / F1) ----
+
+    public record ErasureRequestView(UUID id, UUID userId, String reason, String status, String resolution) {
+        static ErasureRequestView from(ErasureRequest r) {
+            return new ErasureRequestView(r.getId(), r.getUserId(), r.getReason(),
+                    r.getStatus().name(), r.getResolution());
+        }
+    }
+
+    public record ResolveErasureRequest(boolean approved, String resolution) {
+    }
+
+    @GetMapping("/compliance/erasure-requests")
+    public List<ErasureRequestView> erasureRequests() {
+        return dataRights.pending().stream().map(ErasureRequestView::from).toList();
+    }
+
+    @PostMapping("/compliance/erasure-requests/{id}/resolve")
+    public ErasureRequestView resolveErasure(@PathVariable UUID id, @RequestBody ResolveErasureRequest req) {
+        return ErasureRequestView.from(dataRights.resolve(id, req.approved(), req.resolution()));
     }
 }

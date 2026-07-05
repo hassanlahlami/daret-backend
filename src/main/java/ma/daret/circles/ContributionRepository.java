@@ -10,6 +10,8 @@ public interface ContributionRepository extends JpaRepository<Contribution, UUID
 
     List<Contribution> findByCircleId(UUID circleId);
 
+    List<Contribution> findByUserId(UUID userId);
+
     List<Contribution> findByCircleIdAndCycleIndex(UUID circleId, int cycleIndex);
 
     List<Contribution> findByUserIdAndStatus(UUID userId, Contribution.Status status);
