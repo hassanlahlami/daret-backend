@@ -13,7 +13,7 @@
 
     <groupId>ma.daret</groupId>
     <artifactId>daret-backend</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>1.0.0-rc</version>
     <name>daret-backend</name>
     <description>Daret — digital ROSCA platform (modular monolith)</description>
 

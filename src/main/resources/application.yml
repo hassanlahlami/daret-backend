@@ -1,6 +1,9 @@
 spring:
   application:
     name: daret-backend
+  lifecycle:
+    # Grace period for graceful shutdown to drain requests.
+    timeout-per-shutdown-phase: 30s
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/daret}
     username: ${SPRING_DATASOURCE_USERNAME:daret}
@@ -71,6 +74,13 @@ management:
       probes:
         enabled: true
       show-details: when-authorized
+      # Kubernetes-style probes: liveness = process healthy (restart if down),
+      # readiness = ready to serve traffic (also gates on the database).
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState, db
   info:
     build:
       enabled: true
@@ -92,6 +102,8 @@ info:
 server:
   port: 8080
   forward-headers-strategy: framework
+  # Drain in-flight requests before exit (rolling deploys, SIGTERM).
+  shutdown: graceful
 
 springdoc:
   swagger-ui:

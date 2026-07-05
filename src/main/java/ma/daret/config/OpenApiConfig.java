@@ -19,8 +19,10 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Daret API")
-                        .description("Digital rotating-savings (ROSCA) platform — Phase 1 (identity).")
-                        .version("v1")
+                        .description("Digital rotating-savings (ROSCA/daret) platform — circles, economics, "
+                                + "mocked money & ledger, risk & matching, compliance (audit chain, KYC/AML, "
+                                + "CNDP data rights), and social trust. Modular monolith.")
+                        .version("1.0.0-rc")
                         .license(new License().name("Proprietary")))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER))
                 .components(new Components().addSecuritySchemes(BEARER,

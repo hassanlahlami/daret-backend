@@ -12,7 +12,8 @@ La plateforme ne détient **jamais** les fonds — tout passe par un port `Payme
 &nbsp;![Java](https://img.shields.io/badge/Java-21-orange)
 &nbsp;![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-6DB33F)
 &nbsp;![Postgres](https://img.shields.io/badge/PostgreSQL-16-336791)
-&nbsp;![Tests](https://img.shields.io/badge/tests-21%20unit%20%2B%20IT-brightgreen)
+&nbsp;![Tests](https://img.shields.io/badge/tests-23%20unit%20%2B%20IT-brightgreen)
+&nbsp;![Release](https://img.shields.io/badge/release-1.0.0--rc-blue)
 
 </div>
 
