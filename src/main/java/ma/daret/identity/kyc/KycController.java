@@ -18,9 +18,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class KycController {
 
     private final KycService kycService;
+    private final KycProvider kycProvider;
 
-    public KycController(KycService kycService) {
+    public KycController(KycService kycService, KycProvider kycProvider) {
         this.kycService = kycService;
+        this.kycProvider = kycProvider;
+    }
+
+    /**
+     * Start a verification session with the KYC partner. Returns an opaque
+     * partnerRef and a redirect URL for the user to complete verification; the
+     * decision arrives asynchronously via {@code /api/v1/webhooks/kyc}.
+     */
+    @PostMapping("/initiate")
+    public KycProvider.KycSession initiate(@AuthenticationPrincipal AuthPrincipal principal) {
+        return kycProvider.initiate(principal.userId());
     }
 
     @PostMapping

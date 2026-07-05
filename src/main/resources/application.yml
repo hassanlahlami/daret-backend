@@ -37,6 +37,8 @@ daret:
       max-attempts: ${DARET_AUTH_LOCKOUT_MAX:5}
       lock-minutes: ${DARET_AUTH_LOCKOUT_MINUTES:15}
   payments:
+    # Which PaymentProvider adapter to use: mock (default) | http (real PSP).
+    provider: ${DARET_PAYMENTS_PROVIDER:mock}
     mock:
       # 0.0 = never fail. Raise to exercise retry/default paths.
       failure-rate: ${DARET_MOCK_FAILURE_RATE:0.0}
@@ -44,9 +46,23 @@ daret:
       settle-immediately: ${DARET_MOCK_SETTLE_IMMEDIATELY:true}
       # When async, a pending movement settles when polled by the reconciler.
       auto-settle-on-poll: ${DARET_MOCK_AUTO_SETTLE_ON_POLL:false}
+    # Real PSP adapter (only used when provider=http). See docs/INTEGRATIONS.md.
+    http:
+      base-url: ${DARET_PSP_BASE_URL:}
+      api-key: ${DARET_PSP_API_KEY:}
+      collect-path: ${DARET_PSP_COLLECT_PATH:/charges}
+      disburse-path: ${DARET_PSP_DISBURSE_PATH:/transfers}
+      status-path: ${DARET_PSP_STATUS_PATH:/transactions/{ref}}
     webhook:
       # HMAC-SHA256 secret to verify inbound PSP webhooks. Override in prod.
       secret: ${DARET_PSP_WEBHOOK_SECRET:dev-webhook-secret-change-me}
+  kyc:
+    # Which KycProvider adapter to use: mock (default) | http (real eKYC partner).
+    provider: ${DARET_KYC_PROVIDER:mock}
+    http:
+      base-url: ${DARET_KYC_BASE_URL:}
+      api-key: ${DARET_KYC_API_KEY:}
+      initiate-path: ${DARET_KYC_INITIATE_PATH:/sessions}
   scheduler:
     enabled: ${DARET_SCHEDULER_ENABLED:true}
     interval-ms: ${DARET_SCHEDULER_INTERVAL_MS:60000}

@@ -2,6 +2,7 @@ package ma.daret.payments.mock;
 
 import ma.daret.payments.port.PaymentProvider;
 import ma.daret.payments.port.PaymentStatus;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,8 +13,12 @@ import java.util.concurrent.ThreadLocalRandom;
  * a configurable failure rate so the default / gap-fill paths can be exercised.
  * Idempotent on {@code idempotencyKey}: replaying a request returns the original
  * external reference and status rather than charging twice.
+ *
+ * <p>Active by default ({@code daret.payments.provider=mock}). Set the property to
+ * {@code http} to swap in {@link ma.daret.payments.http.HttpPaymentProvider}.
  */
 @Component
+@ConditionalOnProperty(value = "daret.payments.provider", havingValue = "mock", matchIfMissing = true)
 public class MockPaymentProvider implements PaymentProvider {
 
     private final MockPaymentProperties props;
