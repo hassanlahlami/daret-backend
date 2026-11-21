@@ -20,6 +20,26 @@ La plateforme ne détient **jamais** les fonds — tout passe par un port `Payme
 > App web (PWA Next.js, fr/ar/darija) : **[hassanlahlami/daret-frontend](https://github.com/hassanlahlami/daret-frontend)**.
 > Spécification complète : [`daret-platform-spec.md`](./daret-platform-spec.md).
 
+## 🇬🇧 In English
+
+**Daret is a fintech backend for group savings circles (ROSCA), built as a modular Spring Boot
+monolith on Java 21 and PostgreSQL.** It is a complete, tested reference for the parts of a money
+product that are easy to get wrong:
+
+- **Double-entry ledger** with derived balances, so every movement can be audited and nothing is a
+  free-standing number.
+- **Payments behind a provider port.** The platform never holds funds. Settlement is asynchronous:
+  an outbox sends intents to the payment provider, **HMAC-signed, idempotent webhooks** confirm them,
+  and a scheduled reconciler (ShedLock) catches anything missed.
+- **Risk and compliance built in:** KYC gate, exposure cap on gap-fill, a **SHA-256 hash-chained audit
+  trail** (AOP `@Audited`), and PII masking.
+- **Production habits:** Flyway migrations, JWT with rotating refresh tokens, rate limiting, health
+  probes and Prometheus metrics, Docker Compose for the full stack, CI, unit and Testcontainers
+  integration tests, Swagger UI.
+
+If you need a payments, ledger or banking-API integration built carefully, this is the kind of work I
+do: [Upwork profile](https://www.upwork.com/freelancers/~015cce5800215d394a).
+
 ## 🚀 Démarrer
 
 **Full stack** (clonez les deux dépôts côte à côte sous un même parent) :
